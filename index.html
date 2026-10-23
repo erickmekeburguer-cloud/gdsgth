@@ -11,6 +11,7 @@
             --bg: #f4f7f6; 
             --border: #ddd; 
             --danger: #dc3545;
+            --success: #28a745;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -26,18 +27,26 @@
         .main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
         header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
         
-        /* Controle das Páginas (Só uma aparece por vez) */
+        /* Controle das Páginas */
         .page { display: none; padding: 30px; }
         .page.active { display: block; }
 
+        /* Formulário de Cadastro */
+        .form-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #666; margin-bottom: 5px; }
+        .form-group input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; width: 200px; }
+        .btn-success { background: var(--success); }
+
         /* Tabelas */
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background: #f8f9fa; color: var(--secondary); }
         tr:hover { background: #f1f1f1; }
 
         /* Botões */
         .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; background: var(--primary); }
+        .btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
@@ -45,8 +54,10 @@
     <!-- MENU LATERAL -->
     <aside class="sidebar">
         <h2>TOP Gestão</h2>
-        <!-- O "this" passa o link clicado para o JavaScript pintar de azul -->
         <a onclick="abrirAba('dashboard', this)" class="active">📊 Dashboard</a>
+        <!-- NOVA ABA DE COLABORADORES -->
+        <a onclick="abrirAba('colaboradores', this)">👥 Colaboradores</a>
+        
         <a onclick="abrirAba('youpoints', this)">🎯 YouPoints</a>
         <a onclick="abrirAba('abs', this)">📉 Somente ABS</a>
         <a onclick="abrirAba('tempo', this)">⏱️ Tempo Produtivo</a>
@@ -54,7 +65,6 @@
         <a onclick="abrirAba('indicadores', this)">📈 Indicadores</a>
     </aside>
 
-    <!-- CONTEÚDO PRINCIPAL -->
     <main class="main">
         <header>
             <h3 id="titulo-pagina">Dashboard</h3>
@@ -65,6 +75,31 @@
         <div id="page-dashboard" class="page active">
             <h2>Bem-vindo ao TOP Gestão</h2>
             <p style="margin-top: 10px; color: #666;">Utilize o menu lateral para navegar entre os módulos.</p>
+        </div>
+
+        <!-- NOVA ABA: COLABORADORES -->
+        <div id="page-colaboradores" class="page">
+            <h3 style="margin-bottom: 15px; color: var(--secondary);">Cadastrar Novo Colaborador</h3>
+            
+            <!-- Formulário -->
+            <div class="form-card">
+                <div class="form-group">
+                    <label>Matrícula</label>
+                    <input type="text" id="cad-matricula" placeholder="Ex: 16049">
+                </div>
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="cad-nome" placeholder="Ex: Adriele Souza">
+                </div>
+                <button class="btn btn-success" onclick="cadastrarColaborador()">Salvar Colaborador</button>
+                <span id="msg-cadastro" style="font-weight: bold; margin-left: 10px;"></span>
+            </div>
+
+            <h3 style="margin-bottom: 15px; color: var(--secondary);">Colaboradores Cadastrados</h3>
+            <table>
+                <thead><tr><th>Matrícula</th><th>Nome</th><th>Status</th></tr></thead>
+                <tbody id="tabela-colaboradores"><tr><td colspan="3">Carregando...</td></tr></tbody>
+            </table>
         </div>
 
         <!-- ABA 2: YOUPOINTS -->
@@ -111,11 +146,10 @@
 
     <script>
         // ====================================================
-        // TROQUE ABAIXO PELA URL DO SEU RENDER (sem barra no final)
+        // TROQUE ABAIXO PELA URL DO SEU RENDER
         const API_URL = 'https://equipe100-api.onrender.com/api';
         // ====================================================
 
-        // Função que troca de página (esconde uma, mostra outra)
         function abrirAba(nomePagina, elementoMenu) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
@@ -124,13 +158,13 @@
             if (elementoMenu) elementoMenu.classList.add('active');
 
             const titulos = {
-                'dashboard': 'Visão Geral', 'youpoints': 'Controle de YouPoints', 
-                'abs': 'Controle de ABS', 'tempo': 'Tempo Produtivo', 
-                'banco': 'Banco de Horas', 'indicadores': 'Indicadores'
+                'dashboard': 'Visão Geral', 'colaboradores': 'Gestão de Colaboradores',
+                'youpoints': 'Controle de YouPoints', 'abs': 'Controle de ABS', 
+                'tempo': 'Tempo Produtivo', 'banco': 'Banco de Horas', 'indicadores': 'Indicadores'
             };
             document.getElementById('titulo-pagina').innerText = titulos[nomePagina];
 
-            // Busca os dados da aba que foi aberta
+            if (nomePagina === 'colaboradores') carregarColaboradores();
             if (nomePagina === 'youpoints') carregarYouPoints();
             if (nomePagina === 'abs') carregarABS();
             if (nomePagina === 'tempo') carregarTempo();
@@ -140,15 +174,81 @@
 
         function recarregarDados() {
             const abaAtiva = document.querySelector('.sidebar a.active').innerText;
-            if (abaAtiva.includes('YouPoints')) carregarYouPoints();
+            if (abaAtiva.includes('Colaboradores')) carregarColaboradores();
+            else if (abaAtiva.includes('YouPoints')) carregarYouPoints();
             else if (abaAtiva.includes('ABS')) carregarABS();
             else if (abaAtiva.includes('Tempo')) carregarTempo();
             else if (abaAtiva.includes('BH')) carregarBanco();
             else if (abaAtiva.includes('Indicadores')) carregarIndicadores();
         }
 
-        // === FUNÇÕES QUE BUSCAM DADOS NO RENDER ===
+        // ==========================================
+        // FUNÇÕES DE COLABORADORES (NOVO)
+        // ==========================================
         
+        async function carregarColaboradores() {
+            const tbody = document.getElementById('tabela-colaboradores');
+            tbody.innerHTML = '<tr><td colspan="3">Buscando colaboradores...</td></tr>';
+            try {
+                const res = await fetch(`${API_URL}/colaboradores`);
+                const dados = await res.json();
+                tbody.innerHTML = '';
+                
+                if(dados.length === 0) return tbody.innerHTML = '<tr><td colspan="3">Nenhum colaborador cadastrado.</td></tr>';
+                
+                dados.forEach(d => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${d.matricula}</strong></td>
+                            <td>${d.nome}</td>
+                            <td><span style="color: green; font-weight: bold;">Ativo</span></td>
+                        </tr>`;
+                });
+            } catch (e) { 
+                tbody.innerHTML = '<tr><td colspan="3" style="color:red;">Erro ao buscar colaboradores.</td></tr>'; 
+            }
+        }
+
+        async function cadastrarColaborador() {
+            const matricula = document.getElementById('cad-matricula').value;
+            const nome = document.getElementById('cad-nome').value;
+            const msg = document.getElementById('msg-cadastro');
+
+            if(!matricula || !nome) {
+                msg.style.color = 'red';
+                msg.innerText = 'Preencha todos os campos!';
+                return;
+            }
+
+            try {
+                msg.style.color = 'blue';
+                msg.innerText = 'Salvando...';
+
+                const res = await fetch(`${API_URL}/colaboradores`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ matricula, nome })
+                });
+
+                if(res.ok) {
+                    msg.style.color = 'green';
+                    msg.innerText = 'Cadastrado com sucesso!';
+                    document.getElementById('cad-matricula').value = '';
+                    document.getElementById('cad-nome').value = '';
+                    carregarColaboradores(); // Atualiza a tabela abaixo
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                msg.style.color = 'red';
+                msg.innerText = 'Erro ao cadastrar. Matrícula já existe?';
+            }
+        }
+
+        // ==========================================
+        // FUNÇÕES DAS OUTRAS ABAS
+        // ==========================================
+
         async function carregarYouPoints() {
             const tbody = document.getElementById('tabela-youp oints');
             tbody.innerHTML = '<tr><td colspan="6">Buscando dados...</td></tr>';
@@ -169,7 +269,7 @@
                             <td>${d.transfPesquisa || 0}</td>
                         </tr>`;
                 });
-            } catch (e) { tbody.innerHTML = '<tr><td colspan="6" style="color:red;">Erro de conexão com a API.</td></tr>'; }
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="6" style="color:red;">Erro de conexão.</td></tr>'; }
         }
 
         async function carregarABS() {
